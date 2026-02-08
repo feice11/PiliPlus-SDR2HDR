@@ -95,7 +95,8 @@ class HdrPlayerView(
                     targetPeakNits = (args["targetPeakNits"] as? Number)?.toInt() ?: 1000,
                     strength = (args["strength"] as? Number)?.toFloat() ?: 1.0f,
                     saturation = (args["saturation"] as? Number)?.toFloat() ?: 1.0f,
-                    highlightBoost = (args["highlightBoost"] as? Number)?.toFloat() ?: 1.0f
+                    highlightBoost = (args["highlightBoost"] as? Number)?.toFloat() ?: 1.0f,
+                    preDarken = (args["preDarken"] as? Number)?.toFloat() ?: 0.0f
                 )
                 controller.setToneMapOptions(options)
                 result.success(null)

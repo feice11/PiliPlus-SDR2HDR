@@ -49,6 +49,7 @@ import 'package:PiliPlus/pages/search/view.dart';
 import 'package:PiliPlus/pages/search_result/view.dart';
 import 'package:PiliPlus/pages/search_trending/view.dart';
 import 'package:PiliPlus/pages/setting/extra_setting.dart';
+import 'package:PiliPlus/pages/setting/hdr_setting.dart';
 import 'package:PiliPlus/pages/setting/pages/bar_set.dart';
 import 'package:PiliPlus/pages/setting/pages/color_select.dart';
 import 'package:PiliPlus/pages/setting/pages/display_mode.dart';
@@ -115,6 +116,8 @@ class Routes {
     GetPage(name: '/recommendSetting', page: () => const RecommendSetting()),
     // 音视频设置
     GetPage(name: '/videoSetting', page: () => const VideoSetting()),
+    // HDR 渲染设置
+    GetPage(name: '/hdrSetting', page: () => const HdrSetting()),
     // 播放器设置
     GetPage(name: '/playSetting', page: () => const PlaySetting()),
     // 外观设置

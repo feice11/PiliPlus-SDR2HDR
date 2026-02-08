@@ -64,6 +64,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
 class PlPlayerController {
+  static double _resolveDefaultHdrPreDarken() =>
+      Pref.hdrToneMapDefaultPreDarken.clamp(0.0, 0.4).toDouble();
   Player? _videoPlayerController;
   VideoController? _videoController;
   HdrPlayerController? _hdrController;
@@ -126,6 +128,7 @@ class PlPlayerController {
 
   /// HDR 渲染开关（Android）
   final RxBool hdrRenderEnabled = Pref.enableHdrRenderAndroid.obs;
+  final RxDouble hdrPreDarken = _resolveDefaultHdrPreDarken().obs;
 
   /// 音量控制条展示/隐藏
   final RxBool showVolumeStatus = false.obs;
@@ -188,14 +191,17 @@ class PlPlayerController {
   late final tryLook = !Accounts.get(AccountType.video).isLogin && Pref.p1080;
 
   late DataSource dataSource;
+  bool _hasDataSourceInitialized = false;
 
   Timer? _timer;
   Timer? _timerForSeek;
   Timer? _timerForShowingVolume;
+  Timer? _hdrToneMapApplyTimer;
   final Stopwatch _positionUpdateStopwatch = Stopwatch()..start();
   final Stopwatch _bufferUpdateStopwatch = Stopwatch()..start();
   static const int _positionUpdateIntervalMs = 200;
   static const int _bufferUpdateIntervalMs = 500;
+  static const Duration _hdrToneMapApplyDebounce = Duration(milliseconds: 60);
 
   Box setting = GStorage.setting;
 
@@ -335,11 +341,7 @@ class PlPlayerController {
   void enterPip({bool isAuto = false}) {
     if (useHdrBackend) {
       controls = false;
-      PageUtils.enterPip(
-        isAuto: isAuto,
-        width: width,
-        height: height,
-      );
+      PageUtils.enterPip(isAuto: isAuto, width: width, height: height);
     } else if (videoController != null) {
       controls = false;
       final state = videoController!.player.state;
@@ -656,6 +658,11 @@ class PlPlayerController {
     int? mediaType,
   }) async {
     try {
+      final bool sameVideo =
+          _hasDataSourceInitialized &&
+          ((this.cid != null && cid != null && this.cid == cid) ||
+              (this.dataSource.videoSource == dataSource.videoSource &&
+                  this.dataSource.audioSource == dataSource.audioSource));
       this.dirPath = dirPath;
       this.typeTag = typeTag;
       this.mediaType = mediaType;
@@ -667,6 +674,7 @@ class PlPlayerController {
       this.width = width;
       this.height = height;
       this.dataSource = dataSource;
+      _hasDataSourceInitialized = true;
       _autoPlay = autoplay;
       _looping = looping;
       // 初始化视频倍速
@@ -677,6 +685,10 @@ class PlPlayerController {
       hdrSupportResult = null;
       // media_kit 内部 SDR->HDR 处理由配置控制，这里不切换播放器后端。
       hdrForceSdr = false;
+      if (!sameVideo) {
+        hdrPreDarken.value = _resolveDefaultHdrPreDarken();
+      }
+      _hdrToneMapApplyTimer?.cancel();
       // 初始化全屏方向
       _isVertical = isVertical ?? false;
       _aid = aid;
@@ -733,7 +745,9 @@ class PlPlayerController {
           audioUri = dataSource.audioSource;
         }
 
-        await _hdrController!.setToneMapOptions(const ToneMapOptions());
+        await _hdrController!.setToneMapOptions(
+          ToneMapOptions(preDarken: hdrPreDarken.value),
+        );
         await _hdrController!.prepare(
           videoUrl: videoUri,
           audioUrl: audioUri,
@@ -773,7 +787,8 @@ class PlPlayerController {
           volume,
         );
         // 获取视频时长 00:00
-        this.duration.value = duration ?? _videoPlayerController!.state.duration;
+        this.duration.value =
+            duration ?? _videoPlayerController!.state.duration;
         position.value = buffered.value = sliderPosition.value =
             seekTo ?? Duration.zero;
         updateDurationSecond();
@@ -980,14 +995,10 @@ class PlPlayerController {
         audioNormalization = audioNormalization.replaceFirstMapped(
           loudnormRegExp,
           (i) =>
-              'loudnorm=${volume.format(
-                Map.fromEntries(
-                  i.group(1)!.split(':').map((item) {
-                    final parts = item.split('=');
-                    return MapEntry(parts[0].toLowerCase(), num.parse(parts[1]));
-                  }),
-                ),
-              )}',
+              'loudnorm=${volume.format(Map.fromEntries(i.group(1)!.split(':').map((item) {
+                final parts = item.split('=');
+                return MapEntry(parts[0].toLowerCase(), num.parse(parts[1]));
+              })))}',
         );
       } else {
         audioNormalization = audioNormalization.replaceFirst(
@@ -1166,35 +1177,69 @@ class PlPlayerController {
 
   Future<void> _applyHdrToneMapOptions() async {
     if (!Platform.isAndroid) return;
-    if (useHdrBackend) return;
     if (!Pref.enableHdrRenderAndroid) return;
-    final player = _videoPlayerController;
-    if (player == null) return;
-    final handle = await player.handle;
-
     final bool useCustom = Pref.enableHdrToneMapCustom;
     final double peak = useCustom ? Pref.hdrToneMapPeakNits : 1000.0;
     final double strength = useCustom ? Pref.hdrToneMapStrength : 1.0;
     final double saturation = useCustom ? Pref.hdrToneMapSaturation : 1.0;
     final double highlight = useCustom ? Pref.hdrToneMapHighlightBoost : 1.0;
+    final double preDarken = hdrPreDarken.value.clamp(0.0, 0.4).toDouble();
+
+    if (useHdrBackend) {
+      final hdr = _hdrController;
+      if (hdr == null) return;
+      try {
+        await hdr.setToneMapOptions(
+          ToneMapOptions(
+            targetPeakNits: peak,
+            strength: strength,
+            saturation: saturation,
+            highlightBoost: highlight,
+            preDarken: preDarken,
+          ),
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('hdr_player: setToneMapOptions failed: $e');
+        }
+      }
+      return;
+    }
+
+    final player = _videoPlayerController;
+    if (player == null) return;
+    final handle = await player.handle;
 
     try {
-      await const MethodChannel('com.alexmercerind/media_kit_video').invokeMethod(
-        'VideoOutputManager.SetToneMapOptions',
-        {
-          'handle': handle.toString(),
-          'peak': peak.toString(),
-          'strength': strength.toString(),
-          'saturation': saturation.toString(),
-          'highlight': highlight.toString(),
-        },
-      );
+      await const MethodChannel(
+        'com.alexmercerind/media_kit_video',
+      ).invokeMethod('VideoOutputManager.SetToneMapOptions', {
+        'handle': handle.toString(),
+        'peak': peak.toString(),
+        'strength': strength.toString(),
+        'saturation': saturation.toString(),
+        'highlight': highlight.toString(),
+        'preDarken': preDarken.toString(),
+      });
     } catch (e) {
       if (kDebugMode) {
         debugPrint('media_kit: SetToneMapOptions failed: $e');
       }
     }
   }
+
+  Future<void> setHdrPreDarkenRealtime(double value) async {
+    if (!Platform.isAndroid) return;
+    final next = value.clamp(0.0, 0.4).toDouble();
+    if ((hdrPreDarken.value - next).abs() < 0.0001) return;
+    hdrPreDarken.value = next;
+    _hdrToneMapApplyTimer?.cancel();
+    _hdrToneMapApplyTimer = Timer(_hdrToneMapApplyDebounce, () {
+      _applyHdrToneMapOptions();
+    });
+  }
+
+  double get defaultHdrPreDarken => _resolveDefaultHdrPreDarken();
 
   Future<bool> _confirmHdrFallback(HdrSupportResult result) async {
     final context = Get.context;
@@ -1301,7 +1346,7 @@ class PlPlayerController {
         final bool isSeekJump = deltaMs >= 800;
         final bool timeOk =
             _positionUpdateStopwatch.elapsedMilliseconds >=
-                _positionUpdateIntervalMs;
+            _positionUpdateIntervalMs;
         if (!timeOk && !isSeekJump && event != Duration.zero) {
           return;
         }
@@ -1332,7 +1377,7 @@ class PlPlayerController {
         final bool isJump = bufferDeltaMs >= 800;
         final bool timeOk =
             _bufferUpdateStopwatch.elapsedMilliseconds >=
-                _bufferUpdateIntervalMs;
+            _bufferUpdateIntervalMs;
         if (!timeOk && !isJump) {
           return;
         }
@@ -1470,8 +1515,9 @@ class PlPlayerController {
         }
         if (event.playing != null) {
           WakelockPlus.toggle(enable: event.playing!);
-          playerStatus.value =
-              event.playing! ? PlayerStatus.playing : PlayerStatus.paused;
+          playerStatus.value = event.playing!
+              ? PlayerStatus.playing
+              : PlayerStatus.paused;
           videoPlayerServiceHandler?.onStatusChange(
             playerStatus.value,
             isBuffering.value,
@@ -2133,6 +2179,7 @@ class PlPlayerController {
     _timer?.cancel();
     _timerForSeek?.cancel();
     _timerForShowingVolume?.cancel();
+    _hdrToneMapApplyTimer?.cancel();
     // _position.close();
     // _playerEventSubs?.cancel();
     // _sliderPosition.close();

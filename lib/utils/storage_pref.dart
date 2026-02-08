@@ -753,10 +753,14 @@ abstract final class Pref {
       Platform.isAndroid &&
       _setting.get(SettingBoxKey.enableHdrRenderAndroid, defaultValue: false);
 
-
   static bool get enableHdrToneMapCustom => _setting.get(
     SettingBoxKey.enableHdrToneMapCustom,
     defaultValue: false,
+  );
+
+  static double get hdrToneMapDefaultPreDarken => _setting.get(
+    SettingBoxKey.hdrToneMapDefaultPreDarken,
+    defaultValue: 0.1,
   );
 
   static double get hdrToneMapPeakNits => _setting.get(

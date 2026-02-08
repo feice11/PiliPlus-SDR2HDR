@@ -39,20 +39,23 @@ class ToneMapOptions {
   final double strength;
   final double saturation;
   final double highlightBoost;
+  final double preDarken;
 
   const ToneMapOptions({
     this.targetPeakNits = 1000.0,
     this.strength = 1.0,
     this.saturation = 1.0,
     this.highlightBoost = 1.0,
+    this.preDarken = 0.0,
   });
 
   Map<String, dynamic> toMap() => {
-        'targetPeakNits': targetPeakNits,
-        'strength': strength,
-        'saturation': saturation,
-        'highlightBoost': highlightBoost,
-      };
+    'targetPeakNits': targetPeakNits,
+    'strength': strength,
+    'saturation': saturation,
+    'highlightBoost': highlightBoost,
+    'preDarken': preDarken,
+  };
 }
 
 class HdrPlayerController {
@@ -117,9 +120,10 @@ class HdrPlayerController {
     _channel = MethodChannel('hdr_player/view_$viewId');
     _eventChannel = EventChannel('hdr_player/view_$viewId/events');
     _eventSub?.cancel();
-    _eventSub = _eventChannel!
-        .receiveBroadcastStream()
-        .listen(_handleEvent, onError: _handleError);
+    _eventSub = _eventChannel!.receiveBroadcastStream().listen(
+      _handleEvent,
+      onError: _handleError,
+    );
 
     // Sync tone map options on attach.
     await _invoke('setToneMapOptions', _toneMapOptions.toMap());
@@ -210,9 +214,15 @@ class HdrPlayerController {
       final error = event['error'] as String?;
       _events.add(
         HdrPlayerEvent(
-          position: positionMs != null ? Duration(milliseconds: positionMs) : null,
-          duration: durationMs != null ? Duration(milliseconds: durationMs) : null,
-          buffered: bufferedMs != null ? Duration(milliseconds: bufferedMs) : null,
+          position: positionMs != null
+              ? Duration(milliseconds: positionMs)
+              : null,
+          duration: durationMs != null
+              ? Duration(milliseconds: durationMs)
+              : null,
+          buffered: bufferedMs != null
+              ? Duration(milliseconds: bufferedMs)
+              : null,
           playing: playing,
           buffering: buffering,
           completed: completed,

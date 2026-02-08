@@ -8,6 +8,7 @@ enum BottomControlType {
   subtitle,
   speed,
   hdr,
+  hdrBrightness,
   fullscreen,
   viewPoints,
   superResolution,

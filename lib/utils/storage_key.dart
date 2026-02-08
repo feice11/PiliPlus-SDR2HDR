@@ -18,6 +18,7 @@ abstract final class SettingBoxKey {
       hdrToneMapStrength = 'hdrToneMapStrength',
       hdrToneMapSaturation = 'hdrToneMapSaturation',
       hdrToneMapHighlightBoost = 'hdrToneMapHighlightBoost',
+      hdrToneMapDefaultPreDarken = 'hdrToneMapDefaultPreDarken',
       enableHA = 'enableHA',
       audioOutput = 'audioOutput',
       expandBuffer = 'expandBuffer',

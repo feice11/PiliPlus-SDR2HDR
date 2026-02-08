@@ -15,6 +15,7 @@ class Texture2dProgram {
     private val uStrengthLoc: Int
     private val uSaturationLoc: Int
     private val uHighlightBoostLoc: Int
+    private val uPreDarkenLoc: Int
     private val uUseHdrLoc: Int
     private val uFrameIndexLoc: Int
 
@@ -30,6 +31,7 @@ class Texture2dProgram {
         uStrengthLoc = GLES20.glGetUniformLocation(program, "uStrength")
         uSaturationLoc = GLES20.glGetUniformLocation(program, "uSaturation")
         uHighlightBoostLoc = GLES20.glGetUniformLocation(program, "uHighlightBoost")
+        uPreDarkenLoc = GLES20.glGetUniformLocation(program, "uPreDarken")
         uUseHdrLoc = GLES20.glGetUniformLocation(program, "uUseHdr")
         uFrameIndexLoc = GLES20.glGetUniformLocation(program, "uFrameIndex")
 
@@ -51,6 +53,7 @@ class Texture2dProgram {
         strength: Float,
         saturation: Float,
         highlightBoost: Float,
+        preDarken: Float,
         useHdr: Boolean,
         frameIndex: Int
     ) {
@@ -71,6 +74,7 @@ class Texture2dProgram {
         GLES20.glUniform1f(uStrengthLoc, strength)
         GLES20.glUniform1f(uSaturationLoc, saturation)
         GLES20.glUniform1f(uHighlightBoostLoc, highlightBoost)
+        GLES20.glUniform1f(uPreDarkenLoc, preDarken)
         GLES20.glUniform1i(uUseHdrLoc, if (useHdr) 1 else 0)
         GLES20.glUniform1f(uFrameIndexLoc, frameIndex.toFloat())
 
@@ -118,6 +122,7 @@ class Texture2dProgram {
             uniform float uStrength;
             uniform float uSaturation;
             uniform float uHighlightBoost;
+            uniform float uPreDarken;
             uniform int uUseHdr;
             uniform float uFrameIndex;
             varying vec2 vTextureCoord;
@@ -151,6 +156,7 @@ class Texture2dProgram {
                 }
 
                 vec3 linear = pow(rgb, vec3(2.2));
+                linear *= (1.0 - clamp(uPreDarken, 0.0, 0.8));
                 vec3 wide = bt709ToBt2020(linear);
 
                 float luma = dot(wide, vec3(0.2627, 0.6780, 0.0593));

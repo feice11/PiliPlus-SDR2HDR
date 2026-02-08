@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:PiliPlus/common/widgets/flutter/list_tile.dart';
 import 'package:PiliPlus/common/widgets/view_safe_area.dart';
 import 'package:PiliPlus/http/login.dart';
@@ -5,6 +7,7 @@ import 'package:PiliPlus/models/common/setting_type.dart';
 import 'package:PiliPlus/pages/about/view.dart';
 import 'package:PiliPlus/pages/login/controller.dart';
 import 'package:PiliPlus/pages/setting/extra_setting.dart';
+import 'package:PiliPlus/pages/setting/hdr_setting.dart';
 import 'package:PiliPlus/pages/setting/play_setting.dart';
 import 'package:PiliPlus/pages/setting/privacy_setting.dart';
 import 'package:PiliPlus/pages/setting/recommend_setting.dart';
@@ -44,42 +47,48 @@ class _SettingPageState extends State<SettingPage> {
   final RxBool _noAccount = Accounts.account.isEmpty.obs;
   late bool _isPortrait;
 
-  static const List<_SettingsModel> _items = [
-    _SettingsModel(
+  late final List<_SettingsModel> _items = [
+    const _SettingsModel(
       type: SettingType.privacySetting,
       subtitle: '黑名单、无痕模式',
       icon: Icon(Icons.privacy_tip_outlined),
     ),
-    _SettingsModel(
+    const _SettingsModel(
       type: SettingType.recommendSetting,
       subtitle: '推荐来源（web/app）、刷新保留内容、过滤器',
       icon: Icon(Icons.explore_outlined),
     ),
-    _SettingsModel(
+    const _SettingsModel(
       type: SettingType.videoSetting,
       subtitle: '画质、音质、解码、缓冲、音频输出等',
       icon: Icon(Icons.video_settings_outlined),
     ),
-    _SettingsModel(
+    if (Platform.isAndroid)
+      const _SettingsModel(
+        type: SettingType.hdrSetting,
+        subtitle: 'HDR 渲染开关、默认映射前降亮度、高级参数',
+        icon: Icon(Icons.hdr_on_outlined),
+      ),
+    const _SettingsModel(
       type: SettingType.playSetting,
       subtitle: '双击/长按、全屏、后台播放、弹幕、字幕、底部进度条等',
       icon: Icon(Icons.touch_app_outlined),
     ),
-    _SettingsModel(
+    const _SettingsModel(
       type: SettingType.styleSetting,
       subtitle: '横屏适配（平板）、侧栏、列宽、首页、动态红点、主题、字号、图片、帧率等',
       icon: Icon(Icons.style_outlined),
     ),
-    _SettingsModel(
+    const _SettingsModel(
       type: SettingType.extraSetting,
       subtitle: '震动、搜索、收藏、ai、评论、动态、代理、更新检查等',
       icon: Icon(Icons.extension_outlined),
     ),
-    _SettingsModel(
+    const _SettingsModel(
       type: SettingType.webdavSetting,
       icon: Icon(MdiIcons.databaseCogOutline),
     ),
-    _SettingsModel(
+    const _SettingsModel(
       type: SettingType.about,
       icon: Icon(Icons.info_outline),
     ),
@@ -118,6 +127,9 @@ class _SettingPageState extends State<SettingPage> {
                         showAppBar: false,
                       ),
                       SettingType.videoSetting => const VideoSetting(
+                        showAppBar: false,
+                      ),
+                      SettingType.hdrSetting => const HdrSetting(
                         showAppBar: false,
                       ),
                       SettingType.playSetting => const PlaySetting(
