@@ -1,0 +1,17 @@
+enum BottomControlType {
+  playOrPause,
+  pre,
+  next,
+  time,
+  episode,
+  fit,
+  subtitle,
+  speed,
+  hdr,
+  fullscreen,
+  viewPoints,
+  superResolution,
+  dmChart,
+  qa,
+  aiTranslate,
+}
