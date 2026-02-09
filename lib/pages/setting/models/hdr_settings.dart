@@ -27,10 +27,10 @@ List<SettingsModel> get hdrSettings => [
     onTap: (context, setState) => Get.toNamed('/hdrSetting'),
   ),
   NormalModel(
-    title: '默认映射前降亮度（新视频生效）',
-    leading: const Icon(Icons.brightness_6_outlined),
+    title: '默认动态范围扩展（新视频生效）',
+    leading: const Icon(Icons.light_mode_outlined),
     getSubtitle: () =>
-        '当前：${(Pref.hdrToneMapDefaultPreDarken.clamp(0.0, 0.4) * 100).round()}%',
+        '当前：${(Pref.hdrToneMapDefaultDynamicRange.clamp(0.0, 1.0) * 100).round()}%',
     onTap: (context, setState) => Get.toNamed('/hdrSetting'),
   ),
 ];
@@ -45,22 +45,24 @@ class HdrSettingsPanel extends StatefulWidget {
 class _HdrSettingsPanelState extends State<HdrSettingsPanel> {
   late bool _enableRender;
   late bool _enableCustom;
-  late double _preDarken;
   late double _peak;
   late double _strength;
   late double _saturation;
   late double _highlight;
+  late double _highlightProtect;
 
   @override
   void initState() {
     super.initState();
     _enableRender = Pref.enableHdrRenderAndroid;
     _enableCustom = Pref.enableHdrToneMapCustom;
-    _preDarken = Pref.hdrToneMapDefaultPreDarken.clamp(0.0, 0.4).toDouble();
     _peak = Pref.hdrToneMapPeakNits;
     _strength = Pref.hdrToneMapStrength;
     _saturation = Pref.hdrToneMapSaturation;
     _highlight = Pref.hdrToneMapHighlightBoost;
+    _highlightProtect = Pref.hdrToneMapDefaultDynamicRange
+        .clamp(0.0, 1.0)
+        .toDouble();
   }
 
   Future<void> _saveBool(String key, bool value) async {
@@ -122,16 +124,19 @@ class _HdrSettingsPanelState extends State<HdrSettingsPanel> {
           },
         ),
         _buildSlider(
-          title: '默认映射前降亮度（新视频生效）',
-          value: _preDarken,
+          title: '默认动态范围扩展（新视频生效）',
+          value: _highlightProtect,
           min: 0.0,
-          max: 0.4,
-          divisions: 40,
+          max: 1.0,
+          divisions: 100,
           format: (v) => '${(v * 100).round()}%',
           onChanged: (value) {
-            setState(() => _preDarken = value);
+            setState(() => _highlightProtect = value);
             unawaited(
-              _saveDouble(SettingBoxKey.hdrToneMapDefaultPreDarken, value),
+              _saveDouble(
+                SettingBoxKey.hdrToneMapDefaultHighlightProtect,
+                value,
+              ),
             );
           },
         ),

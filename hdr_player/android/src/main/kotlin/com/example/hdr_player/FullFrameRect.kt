@@ -13,6 +13,7 @@ class FullFrameRect {
         saturation: Float,
         highlightBoost: Float,
         preDarken: Float,
+        highlightProtect: Float,
         useHdr: Boolean,
         frameIndex: Int
     ) {
@@ -26,6 +27,7 @@ class FullFrameRect {
             saturation,
             highlightBoost,
             preDarken,
+            highlightProtect,
             useHdr,
             frameIndex
         )

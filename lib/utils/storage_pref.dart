@@ -758,10 +758,22 @@ abstract final class Pref {
     defaultValue: false,
   );
 
+  @Deprecated('No longer used. preDarken is fixed to 0.0 in HDR pipeline.')
   static double get hdrToneMapDefaultPreDarken => _setting.get(
     SettingBoxKey.hdrToneMapDefaultPreDarken,
     defaultValue: 0.1,
   );
+
+  static double get hdrToneMapDefaultHighlightProtect => _setting
+      .get(
+        SettingBoxKey.hdrToneMapDefaultHighlightProtect,
+        defaultValue: 0.65,
+      )
+      .clamp(0.0, 1.0)
+      .toDouble();
+
+  static double get hdrToneMapDefaultDynamicRange =>
+      hdrToneMapDefaultHighlightProtect;
 
   static double get hdrToneMapPeakNits => _setting.get(
     SettingBoxKey.hdrToneMapPeakNits,

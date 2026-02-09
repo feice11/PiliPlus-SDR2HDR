@@ -40,6 +40,7 @@ class ToneMapOptions {
   final double saturation;
   final double highlightBoost;
   final double preDarken;
+  final double highlightProtect;
 
   const ToneMapOptions({
     this.targetPeakNits = 1000.0,
@@ -47,6 +48,7 @@ class ToneMapOptions {
     this.saturation = 1.0,
     this.highlightBoost = 1.0,
     this.preDarken = 0.0,
+    this.highlightProtect = 0.65,
   });
 
   Map<String, dynamic> toMap() => {
@@ -55,6 +57,7 @@ class ToneMapOptions {
     'saturation': saturation,
     'highlightBoost': highlightBoost,
     'preDarken': preDarken,
+    'highlightProtect': highlightProtect,
   };
 }
 

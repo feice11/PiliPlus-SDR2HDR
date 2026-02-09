@@ -96,7 +96,8 @@ class HdrPlayerView(
                     strength = (args["strength"] as? Number)?.toFloat() ?: 1.0f,
                     saturation = (args["saturation"] as? Number)?.toFloat() ?: 1.0f,
                     highlightBoost = (args["highlightBoost"] as? Number)?.toFloat() ?: 1.0f,
-                    preDarken = (args["preDarken"] as? Number)?.toFloat() ?: 0.0f
+                    preDarken = (args["preDarken"] as? Number)?.toFloat() ?: 0.0f,
+                    highlightProtect = (args["highlightProtect"] as? Number)?.toFloat() ?: 0.65f
                 )
                 controller.setToneMapOptions(options)
                 result.success(null)

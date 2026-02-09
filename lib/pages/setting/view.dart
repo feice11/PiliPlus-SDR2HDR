@@ -66,7 +66,7 @@ class _SettingPageState extends State<SettingPage> {
     if (Platform.isAndroid)
       const _SettingsModel(
         type: SettingType.hdrSetting,
-        subtitle: 'HDR 渲染开关、默认映射前降亮度、高级参数',
+        subtitle: 'HDR 渲染开关、动态范围扩展、高级参数',
         icon: Icon(Icons.hdr_on_outlined),
       ),
     const _SettingsModel(

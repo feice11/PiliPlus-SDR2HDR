@@ -52,6 +52,7 @@ class GlRenderThread(
     @Volatile private var saturation = 1.0f
     @Volatile private var highlightBoost = 1.0f
     @Volatile private var preDarken = 0.0f
+    @Volatile private var highlightProtect = 0.65f
 
     private val texMatrix = FloatArray(16)
     private val combinedTexMatrix = FloatArray(16)
@@ -71,6 +72,7 @@ class GlRenderThread(
         saturation = options.saturation
         highlightBoost = options.highlightBoost
         preDarken = options.preDarken
+        highlightProtect = options.highlightProtect
         requestRender()
     }
 
@@ -200,6 +202,7 @@ class GlRenderThread(
                     saturation,
                     highlightBoost,
                     preDarken,
+                    highlightProtect,
                     hdrRenderSupported,
                     (System.nanoTime() / 1_000_000L).toInt()
                 )
@@ -323,6 +326,7 @@ class GlRenderThread(
             saturation,
             highlightBoost,
             preDarken,
+            highlightProtect,
             hdrRenderSupported,
             (System.nanoTime() / 1_000_000L).toInt()
         )

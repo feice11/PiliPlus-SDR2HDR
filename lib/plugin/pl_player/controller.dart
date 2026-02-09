@@ -64,8 +64,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
 class PlPlayerController {
-  static double _resolveDefaultHdrPreDarken() =>
-      Pref.hdrToneMapDefaultPreDarken.clamp(0.0, 0.4).toDouble();
+  static double _resolveDefaultHdrHighlightProtect() =>
+      Pref.hdrToneMapDefaultDynamicRange.clamp(0.0, 1.0).toDouble();
   Player? _videoPlayerController;
   VideoController? _videoController;
   HdrPlayerController? _hdrController;
@@ -128,7 +128,7 @@ class PlPlayerController {
 
   /// HDR 渲染开关（Android）
   final RxBool hdrRenderEnabled = Pref.enableHdrRenderAndroid.obs;
-  final RxDouble hdrPreDarken = _resolveDefaultHdrPreDarken().obs;
+  final RxDouble hdrHighlightProtect = _resolveDefaultHdrHighlightProtect().obs;
 
   /// 音量控制条展示/隐藏
   final RxBool showVolumeStatus = false.obs;
@@ -686,7 +686,7 @@ class PlPlayerController {
       // media_kit 内部 SDR->HDR 处理由配置控制，这里不切换播放器后端。
       hdrForceSdr = false;
       if (!sameVideo) {
-        hdrPreDarken.value = _resolveDefaultHdrPreDarken();
+        hdrHighlightProtect.value = _resolveDefaultHdrHighlightProtect();
       }
       _hdrToneMapApplyTimer?.cancel();
       // 初始化全屏方向
@@ -746,7 +746,10 @@ class PlPlayerController {
         }
 
         await _hdrController!.setToneMapOptions(
-          ToneMapOptions(preDarken: hdrPreDarken.value),
+          ToneMapOptions(
+            preDarken: 0.0,
+            highlightProtect: hdrHighlightProtect.value,
+          ),
         );
         await _hdrController!.prepare(
           videoUrl: videoUri,
@@ -1183,7 +1186,10 @@ class PlPlayerController {
     final double strength = useCustom ? Pref.hdrToneMapStrength : 1.0;
     final double saturation = useCustom ? Pref.hdrToneMapSaturation : 1.0;
     final double highlight = useCustom ? Pref.hdrToneMapHighlightBoost : 1.0;
-    final double preDarken = hdrPreDarken.value.clamp(0.0, 0.4).toDouble();
+    const double preDarken = 0.0;
+    final double highlightProtect = hdrHighlightProtect.value
+        .clamp(0.0, 1.0)
+        .toDouble();
 
     if (useHdrBackend) {
       final hdr = _hdrController;
@@ -1196,6 +1202,7 @@ class PlPlayerController {
             saturation: saturation,
             highlightBoost: highlight,
             preDarken: preDarken,
+            highlightProtect: highlightProtect,
           ),
         );
       } catch (e) {
@@ -1220,6 +1227,7 @@ class PlPlayerController {
         'saturation': saturation.toString(),
         'highlight': highlight.toString(),
         'preDarken': preDarken.toString(),
+        'highlightProtect': highlightProtect.toString(),
       });
     } catch (e) {
       if (kDebugMode) {
@@ -1228,18 +1236,22 @@ class PlPlayerController {
     }
   }
 
-  Future<void> setHdrPreDarkenRealtime(double value) async {
+  Future<void> setHdrHighlightProtectRealtime(double value) async {
     if (!Platform.isAndroid) return;
-    final next = value.clamp(0.0, 0.4).toDouble();
-    if ((hdrPreDarken.value - next).abs() < 0.0001) return;
-    hdrPreDarken.value = next;
+    final next = value.clamp(0.0, 1.0).toDouble();
+    if ((hdrHighlightProtect.value - next).abs() < 0.0001) return;
+    hdrHighlightProtect.value = next;
     _hdrToneMapApplyTimer?.cancel();
     _hdrToneMapApplyTimer = Timer(_hdrToneMapApplyDebounce, () {
       _applyHdrToneMapOptions();
     });
   }
 
-  double get defaultHdrPreDarken => _resolveDefaultHdrPreDarken();
+  double get defaultHdrHighlightProtect => _resolveDefaultHdrHighlightProtect();
+  double get currentHdrTargetPeakNits =>
+      (Pref.enableHdrToneMapCustom ? Pref.hdrToneMapPeakNits : 1000.0)
+          .clamp(100.0, 10000.0)
+          .toDouble();
 
   Future<bool> _confirmHdrFallback(HdrSupportResult result) async {
     final context = Get.context;

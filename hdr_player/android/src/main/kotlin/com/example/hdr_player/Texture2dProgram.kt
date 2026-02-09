@@ -16,6 +16,7 @@ class Texture2dProgram {
     private val uSaturationLoc: Int
     private val uHighlightBoostLoc: Int
     private val uPreDarkenLoc: Int
+    private val uHighlightProtectLoc: Int
     private val uUseHdrLoc: Int
     private val uFrameIndexLoc: Int
 
@@ -32,6 +33,7 @@ class Texture2dProgram {
         uSaturationLoc = GLES20.glGetUniformLocation(program, "uSaturation")
         uHighlightBoostLoc = GLES20.glGetUniformLocation(program, "uHighlightBoost")
         uPreDarkenLoc = GLES20.glGetUniformLocation(program, "uPreDarken")
+        uHighlightProtectLoc = GLES20.glGetUniformLocation(program, "uHighlightProtect")
         uUseHdrLoc = GLES20.glGetUniformLocation(program, "uUseHdr")
         uFrameIndexLoc = GLES20.glGetUniformLocation(program, "uFrameIndex")
 
@@ -54,6 +56,7 @@ class Texture2dProgram {
         saturation: Float,
         highlightBoost: Float,
         preDarken: Float,
+        highlightProtect: Float,
         useHdr: Boolean,
         frameIndex: Int
     ) {
@@ -75,6 +78,7 @@ class Texture2dProgram {
         GLES20.glUniform1f(uSaturationLoc, saturation)
         GLES20.glUniform1f(uHighlightBoostLoc, highlightBoost)
         GLES20.glUniform1f(uPreDarkenLoc, preDarken)
+        GLES20.glUniform1f(uHighlightProtectLoc, highlightProtect)
         GLES20.glUniform1i(uUseHdrLoc, if (useHdr) 1 else 0)
         GLES20.glUniform1f(uFrameIndexLoc, frameIndex.toFloat())
 
@@ -123,6 +127,7 @@ class Texture2dProgram {
             uniform float uSaturation;
             uniform float uHighlightBoost;
             uniform float uPreDarken;
+            uniform float uHighlightProtect;
             uniform int uUseHdr;
             uniform float uFrameIndex;
             varying vec2 vTextureCoord;
@@ -148,6 +153,16 @@ class Texture2dProgram {
                 return pow(num / den, m2);
             }
 
+            float softKneeNits(float valueNits, float kneeStartNits, float shoulderMaxNits) {
+                float v = max(valueNits, 0.0);
+                if (v <= kneeStartNits) {
+                    return v;
+                }
+                float over = v - kneeStartNits;
+                float span = max(shoulderMaxNits - kneeStartNits, 1.0);
+                return kneeStartNits + (over * span) / (over + span);
+            }
+
             void main() {
                 vec3 rgb = texture2D(sTexture, vTextureCoord).rgb;
                 if (uUseHdr == 0) {
@@ -165,16 +180,28 @@ class Texture2dProgram {
 
                 float peak = max(uTargetPeakNits, 100.0);
                 vec3 sdrNits = sat * 100.0;
-                vec3 hdrNits = sdrNits * (peak / 100.0);
-                vec3 mixedNits = mix(sdrNits, hdrNits, clamp(uStrength, 0.0, 1.0));
-
-                float lumaNits = dot(mixedNits, vec3(0.2627, 0.6780, 0.0593));
-                float highlight = smoothstep(0.6 * peak, peak, lumaNits);
-                float boost = mix(1.0, clamp(uHighlightBoost, 0.5, 4.0), highlight);
-                vec3 boostedNits = mixedNits * boost;
-
-                vec3 over = max(boostedNits - peak, vec3(0.0));
-                vec3 softNits = boostedNits / (1.0 + (over / peak));
+                float toneStrength = clamp(uStrength, 0.0, 1.0);
+                float protect = clamp(uHighlightProtect, 0.0, 1.0);
+                float whiteAnchorNits = 0.55 * peak;
+                vec3 anchorNits = sdrNits * (whiteAnchorNits / 100.0);
+                vec3 mappedNits = mix(sdrNits, anchorNits, toneStrength);
+                float lumaMapped = dot(mappedNits, vec3(0.2627, 0.6780, 0.0593));
+                float t = pow(protect, 0.65);
+                float x = max(lumaMapped / max(whiteAnchorNits, 1.0), 1.0e-5);
+                float shadowLift = 1.0 + 0.05 * t * (1.0 - smoothstep(0.25, 0.65, x));
+                float brightLift = smoothstep(0.55, 1.20, x);
+                float highlightExpand = 1.0 + 2.20 * t * brightLift;
+                float lumaExpanded = lumaMapped * shadowLift * highlightExpand;
+                float highlightMask = smoothstep(0.75 * whiteAnchorNits, 1.05 * whiteAnchorNits, lumaExpanded);
+                float boost = mix(1.0, clamp(uHighlightBoost, 0.5, 4.0), highlightMask);
+                float boostedLuma = lumaExpanded + max(lumaExpanded - whiteAnchorNits, 0.0) * (boost - 1.0) * highlightMask;
+                float kneeStartNits = mix(0.90 * peak, 0.68 * peak, t);
+                float shoulderMaxNits = mix(1.8 * peak, 4.2 * peak, t);
+                float lumaSoft = softKneeNits(boostedLuma, kneeStartNits, shoulderMaxNits);
+                float lumaOut = max(lumaSoft, lumaMapped);
+                float lumaScale = lumaOut / max(lumaMapped, 1.0e-4);
+                lumaScale = min(lumaScale, 12.0);
+                vec3 softNits = mappedNits * lumaScale;
                 vec3 pq = vec3(
                     pqOetf(clamp(softNits.r / 10000.0, 0.0, 1.0)),
                     pqOetf(clamp(softNits.g / 10000.0, 0.0, 1.0)),
@@ -182,12 +209,11 @@ class Texture2dProgram {
                 );
 
                 vec3 outColor = pq;
-                float strength = clamp(uStrength, 0.0, 1.0);
-                if (strength > 0.05) {
+                if (toneStrength > 0.05) {
                     float luma01 = clamp(dot(pq, vec3(0.2627, 0.6780, 0.0593)), 0.0, 1.0);
                     float noise = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233)) + uFrameIndex) * 43758.5453);
                     float ditherAmp = (1.0 / 4096.0);
-                    float ditherScale = (1.0 - smoothstep(0.6, 1.0, luma01)) * strength;
+                    float ditherScale = (1.0 - smoothstep(0.6, 1.0, luma01)) * toneStrength;
                     vec3 dither = vec3((noise - 0.5) * ditherAmp * ditherScale);
                     outColor = pq + dither;
                 }

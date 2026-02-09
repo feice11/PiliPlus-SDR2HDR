@@ -731,11 +731,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         if (!plPlayerController.hdrRenderEnabled.value) {
           return const SizedBox.shrink();
         }
-        final value = plPlayerController.hdrPreDarken.value;
+        final highlightProtect = plPlayerController.hdrHighlightProtect.value;
         return ComBtn(
           width: widgetWidth,
           height: 30,
-          tooltip: '映射前降亮度 ${((value * 100).round())}%',
+          tooltip: '动态范围扩展 ${((highlightProtect * 100).round())}%',
           icon: const Icon(
             Icons.brightness_6_outlined,
             size: 22,
@@ -2057,14 +2057,33 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: Obx(() {
               final enabled = plPlayerController.hdrRenderEnabled.value;
-              final value = plPlayerController.hdrPreDarken.value;
-              final percent = (value * 100).round();
+              final highlightProtect =
+                  plPlayerController.hdrHighlightProtect.value;
+              final highlightProtectPercent = (highlightProtect * 100).round();
+              final peak = plPlayerController.currentHdrTargetPeakNits;
+              final t = math
+                  .pow(
+                    highlightProtect.clamp(0.0, 1.0),
+                    0.65,
+                  )
+                  .toDouble();
+              final whiteAnchor = 0.55 * peak;
+              final kneeStart =
+                  ui.lerpDouble(
+                    0.90 * peak,
+                    0.68 * peak,
+                    t,
+                  ) ??
+                  (0.90 * peak);
+              final shoulderMax =
+                  ui.lerpDouble(1.8 * peak, 4.2 * peak, t) ?? (1.8 * peak);
+              final expandGain = 1.0 + 2.20 * t;
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'HDR 映射前降亮度',
+                    'HDR 动态范围扩展',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -2073,7 +2092,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    enabled ? '仅当前视频生效，默认 10%' : '当前为 SDR 渲染，参数不生效',
+                    enabled ? '动态范围扩展（高光不过曝 + 暗部对比增强）' : '当前为 SDR 渲染，参数不生效',
                     style: TextStyle(
                       color: enabled
                           ? Colors.white.withValues(alpha: 0.7)
@@ -2081,9 +2100,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                       fontSize: 12,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 2),
                   Text(
-                    '$percent%',
+                    '动态范围扩展 $highlightProtectPercent%',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -2091,23 +2110,35 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                     ),
                   ),
                   Slider(
-                    value: value.clamp(0.0, 0.4).toDouble(),
+                    value: highlightProtect.clamp(0.0, 1.0).toDouble(),
                     min: 0.0,
-                    max: 0.4,
-                    divisions: 40,
+                    max: 1.0,
+                    divisions: 100,
                     onChanged: (v) {
-                      plPlayerController.setHdrPreDarkenRealtime(v);
+                      plPlayerController.setHdrHighlightProtectRealtime(v);
                     },
+                  ),
+                  Text(
+                    '白位锚点 ${whiteAnchor.toStringAsFixed(0)} nits | 膝点起始 ${kneeStart.toStringAsFixed(0)} nits | 肩部上限 ${shoulderMax.toStringAsFixed(0)} nits | 扩展增益 ${expandGain.toStringAsFixed(2)}（峰值 ${peak.toStringAsFixed(0)}）',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 12,
+                    ),
                   ),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        plPlayerController.setHdrPreDarkenRealtime(
-                          plPlayerController.defaultHdrPreDarken,
-                        );
-                      },
-                      child: const Text('恢复默认'),
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            plPlayerController.setHdrHighlightProtectRealtime(
+                              plPlayerController.defaultHdrHighlightProtect,
+                            );
+                          },
+                          child: const Text('恢复动态范围扩展默认'),
+                        ),
+                      ],
                     ),
                   ),
                 ],
