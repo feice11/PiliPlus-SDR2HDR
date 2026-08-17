@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'hdr_support.dart';
+import 'package:hdr_player/src/hdr_support.dart';
 
 class HdrPlayerEvent {
   final Duration? position;
@@ -174,12 +174,12 @@ class HdrPlayerController {
     });
   }
 
-  Future<void> play() async => _invoke('play');
-  Future<void> pause() async => _invoke('pause');
-  Future<void> seekTo(Duration position) async =>
+  Future<void> play() => _invoke('play');
+  Future<void> pause() => _invoke('pause');
+  Future<void> seekTo(Duration position) =>
       _invoke('seekTo', {'positionMs': position.inMilliseconds});
-  Future<void> setRate(double rate) async => _invoke('setRate', {'rate': rate});
-  Future<void> setVolume(double volume) async =>
+  Future<void> setRate(double rate) => _invoke('setRate', {'rate': rate});
+  Future<void> setVolume(double volume) =>
       _invoke('setVolume', {'volume': volume});
 
   Future<void> setToneMapOptions(ToneMapOptions options) async {

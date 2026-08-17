@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
-import 'hdr_player_controller.dart';
+import 'package:hdr_player/src/hdr_player_controller.dart';
 
 class HdrPlayerView extends StatelessWidget {
   const HdrPlayerView({
@@ -41,11 +41,12 @@ class HdrPlayerView extends StatelessWidget {
           creationParams: <String, dynamic>{},
           creationParamsCodec: const StandardMessageCodec(),
         );
-        controllerView.addOnPlatformViewCreatedListener((id) {
-          params.onPlatformViewCreated(id);
-          controller.attach(id);
-        });
-        controllerView.create();
+        controllerView
+          ..addOnPlatformViewCreatedListener((id) {
+            params.onPlatformViewCreated(id);
+            controller.attach(id);
+          })
+          ..create();
         return controllerView;
       },
     );
