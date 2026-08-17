@@ -2,6 +2,7 @@
 
 [![GPL-3.0](https://img.shields.io/github/license/feice11/PiliPlus-SDR2HDR)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/feice11/PiliPlus-SDR2HDR)](https://github.com/feice11/PiliPlus-SDR2HDR/releases/latest)
+[![Quality](https://github.com/feice11/PiliPlus-SDR2HDR/actions/workflows/quality.yml/badge.svg)](https://github.com/feice11/PiliPlus-SDR2HDR/actions/workflows/quality.yml)
 [![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](#compatibility)
 
 An experimental Android build of [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus) with a real-time SDR-to-HDR rendering pipeline.
@@ -108,7 +109,7 @@ Real-time conversion adds GPU load. Disable HDR, reduce the display refresh rate
 
 - Expand the tested-device compatibility matrix
 - Improve EGL capability detection and fallback diagnostics
-- Add regression tests for tone-mapping parameters and platform messages
+- Expand regression tests for tone-mapping parameters and platform messages
 - Reduce GPU cost and power consumption
 - Automate build verification and release checksums
 

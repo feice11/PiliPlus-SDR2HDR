@@ -20,7 +20,8 @@ class HdrSupportResult {
       displaySupported: map['displaySupported'] == true,
       eglSupported: map['eglSupported'] == true,
       reason: (map['reason'] as String?) ?? '',
-      hdrTypes: (map['hdrTypes'] as List?)?.map((e) => e as int).toList() ??
+      hdrTypes:
+          (map['hdrTypes'] as List?)?.whereType<int>().toList(growable: false) ??
           const <int>[],
     );
   }

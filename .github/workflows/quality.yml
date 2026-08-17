@@ -1,0 +1,47 @@
+name: Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hdr-player-tests:
+    name: HDR plugin tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: pubspec.yaml
+          channel: stable
+          cache: true
+
+      - name: Install plugin dependencies
+        working-directory: hdr_player
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed hdr_player/lib hdr_player/test
+
+      - name: Analyze plugin
+        working-directory: hdr_player
+        run: flutter analyze
+
+      - name: Run plugin tests
+        working-directory: hdr_player
+        run: flutter test --reporter expanded
