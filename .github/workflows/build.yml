@@ -145,7 +145,7 @@ jobs:
                       PiliPlus_android_*_x86_64.apk
 
     ios:
-        if: ${{ github.event_name == 'pull_request' || github.event.inputs.build_ios == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_ios == 'true' }}
         uses: ./.github/workflows/ios.yml
         permissions: write-all
         with:
@@ -159,7 +159,7 @@ jobs:
             tag: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || '' }}
 
     win_x64:
-        if: ${{ github.event_name == 'pull_request' || github.event.inputs.build_win_x64 == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_win_x64 == 'true' }}
         uses: ./.github/workflows/win_x64.yml
         permissions: write-all
         with:
