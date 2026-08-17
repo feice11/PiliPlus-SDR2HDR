@@ -34,14 +34,14 @@ class HdrPlayerView extends StatelessWidget {
         );
       },
       onCreatePlatformView: (params) {
-        final controllerView = PlatformViewsService.initSurfaceAndroidView(
-          id: params.id,
-          viewType: 'hdr_player_view',
-          layoutDirection: TextDirection.ltr,
-          creationParams: <String, dynamic>{},
-          creationParamsCodec: const StandardMessageCodec(),
-        );
-        controllerView
+        final controllerView =
+            PlatformViewsService.initSurfaceAndroidView(
+                id: params.id,
+                viewType: 'hdr_player_view',
+                layoutDirection: TextDirection.ltr,
+                creationParams: <String, dynamic>{},
+                creationParamsCodec: const StandardMessageCodec(),
+              )
           ..addOnPlatformViewCreatedListener((id) {
             params.onPlatformViewCreated(id);
             controller.attach(id);

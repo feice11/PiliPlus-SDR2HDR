@@ -592,11 +592,10 @@ packages:
   floating:
     dependency: "direct main"
     description:
-      path: "."
-      ref: version-3
-      resolved-ref: a66ec0b9dabde6b5880a3f4f3425e57842a38e51
-      url: "https://github.com/bggRGjQaUbCoE/floating.git"
-    source: git
+      name: floating
+      sha256: "ddcd7f28247746dbb62997c48c89d1824118676796df47fdc6f864f8d02849bc"
+      url: "https://pub.dev"
+    source: hosted
     version: "3.0.0"
   flutter:
     dependency: "direct main"
