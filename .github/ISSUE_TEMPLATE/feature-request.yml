@@ -1,0 +1,42 @@
+name: Feature request / 功能建议
+description: Propose an improvement to HDR rendering, compatibility, or maintenance
+labels: ["enhancement"]
+title: "[Feature] "
+body:
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist / 检查清单
+      options:
+        - label: I searched existing issues and did not find the same request. / 我已搜索现有 Issue。
+          required: true
+        - label: This request is related to this repository's HDR build or maintenance scope. / 建议与本仓库的 HDR 构建或维护范围相关。
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / 问题背景
+      description: What limitation or user need would this address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / 建议方案
+      description: Describe the desired behavior and any alternatives considered.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Device or ecosystem impact / 设备或生态影响
+      description: Note affected devices, GPUs, drivers, APIs, or contributor workflows.
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: References / 参考资料
+      description: Link relevant specifications, implementations, screenshots, or test samples.

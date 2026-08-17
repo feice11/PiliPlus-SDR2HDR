@@ -1,159 +1,145 @@
-# PiliPlus-SDR2HDR (Android HDR Build)
+# PiliPlus SDR2HDR
 
-> **目标**：在 PiliPlus（Android）中启用 **SDR→HDR 实时播放**，并保留原生 HDR 直通。此仓库用于发布带 HDR 渲染能力的 APK 与详细文档。
+[![GPL-3.0](https://img.shields.io/github/license/feice11/PiliPlus-SDR2HDR)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/feice11/PiliPlus-SDR2HDR)](https://github.com/feice11/PiliPlus-SDR2HDR/releases/latest)
+[![Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](#compatibility)
 
----
+An experimental Android build of [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus) with a real-time SDR-to-HDR rendering pipeline.
 
-## 目录
-- [简介](#简介)
-- [功能一览](#功能一览)
-- [适用范围](#适用范围)
-- [快速安装](#快速安装)
-- [设置与开关](#设置与开关)
-- [HDR 渲染管线概述](#hdr-渲染管线概述)
-- [性能与流畅度建议](#性能与流畅度建议)
-- [常见问题](#常见问题)
-- [构建说明](#构建说明)
-- [调试与日志](#调试与日志)
-- [已知限制](#已知限制)
-- [路线图](#路线图)
-- [致谢](#致谢)
-- [许可证](#许可证)
+PiliPlus SDR2HDR converts SDR video from BT.709 into a BT.2020/PQ output surface using MediaKit, Android EGL, and OpenGL shaders. Native HDR video remains unmodified, and unsupported devices can fall back to standard SDR playback.
 
----
+**[中文](#中文说明) · [Download](https://github.com/feice11/PiliPlus-SDR2HDR/releases/latest) · [Report a bug](https://github.com/feice11/PiliPlus-SDR2HDR/issues/new/choose) · [Roadmap](#roadmap)**
 
-## 简介
-本仓库是 **PiliPlus 的 HDR 实验构建**：
-- Android 端播放 SDR 内容时，通过 OpenGL 实时进行 SDR→HDR 映射；
-- HDR 内容保持 **直通（不做转换）**；
-- 提供 HDR 开关与高级参数（非推荐）。
+> [!IMPORTANT]
+> HDR rendering is experimental and device-dependent. A system advertising HDR10 support does not guarantee that its GPU driver exposes the EGL extensions required by this project.
 
-> 适合用于 **HDR 设备** 上提升 SDR 观看体验。功能仍处于实验状态。
+## Highlights
 
----
+- Real-time SDR-to-HDR tone mapping during Android video playback
+- Native HDR passthrough without applying a second conversion
+- BT.709 linearization, inverse tone mapping, BT.2020 conversion, and PQ output
+- Optional peak-brightness, strength, saturation, and highlight controls
+- Runtime HDR capability checks with an explicit SDR fallback
+- Android integration across Flutter, Kotlin, MediaKit, EGL, and OpenGL ES
 
-## 功能一览
-- **HDR 开关（Android-only）**：设置中可开启/关闭 HDR 渲染。
-- **SDR→HDR 实时播放**：基于 MediaKit + OpenGL 的管线。
-- **HDR 直通**：HDR 内容不做转换，直接播放。
-- **高级调参**（可选）：峰值亮度 / 强度 / 饱和度 / 高光增强。
-- **降级策略**：HDR 不可用时，**每次提示**是否回退 SDR。
+## Rendering pipeline
 
----
+```text
+SDR video (BT.709)
+        |
+        v
+MediaKit decoder -> SurfaceTexture -> OpenGL shader
+                                      |
+                    BT.709 -> linear light
+                    inverse tone mapping
+                    gamut mapping -> BT.2020
+                    ST 2084 / PQ encoding
+                                      |
+                                      v
+                          EGL BT.2020 PQ surface
+```
 
-## 适用范围
-- **仅 Android**（Flutter 多平台项目中，非 Android 不受影响）。
-- 需要 HDR 显示硬件支持（HDR10 / PQ）。
-- 建议 Android 10+（API 29+）。
+Native HDR content bypasses the SDR expansion stage. If the device cannot create a BT.2020/PQ EGL surface, the player reports the limitation and offers SDR playback instead.
 
----
+## Compatibility
 
-## 快速安装
-1. 打开 Releases 页面下载 `app-release.apk`
-2. 安装后进入设置 → 视频设置 → 打开 **HDR 渲染（实验）**
-3. 播放 SDR 视频观察亮度与高光变化
+| Requirement | Status |
+| --- | --- |
+| Platform | Android only for the HDR pipeline |
+| Recommended OS | Android 10 (API 29) or newer |
+| Display | HDR10/PQ-capable panel |
+| Graphics stack | Working `EGL_EXT_gl_colorspace_bt2020_pq` support |
+| Other platforms | PiliPlus remains usable; this HDR pipeline is not enabled |
 
----
+Vendor firmware and GPU drivers vary. Please include the device model, Android version, GPU, app version, and relevant logs when reporting compatibility problems.
 
-## 设置与开关
-### HDR 渲染（实验）
-- **路径**：设置 → 视频设置
-- **说明**：Android 专用。开启后，SDR 视频走 HDR 渲染；HDR 视频直通。
+## Install
 
-### 高级 HDR 转换参数（不建议修改）
-- **峰值亮度 (nits)**：调高会提升整体亮度（默认 1000）
-- **强度**：SDR→HDR 映射强度（默认 1.0）
-- **饱和度**：控制颜色扩展（默认 1.0）
-- **高光增强**：更强的高光强调（默认 1.0）
+1. Download `app-release.apk` from the [latest release](https://github.com/feice11/PiliPlus-SDR2HDR/releases/latest).
+2. Install the APK on an HDR-capable Android device.
+3. Open **Settings -> Video settings -> HDR rendering (experimental)**.
+4. Play SDR content and compare the result with the HDR toggle disabled.
 
-> 提醒：过高参数可能引发色彩偏色或细节丢失。
+Release assets include a SHA-256 checksum when available. Verify it before installing builds downloaded through mirrors or third parties.
 
----
+## Settings
 
-## HDR 渲染管线概述
-- **解码播放**：media_kit 负责解复用与音频同步
-- **渲染输出**：SurfaceView + EGL HDR colorspace
-- **OpenGL Shader**：
-  1. BT.709 → 线性
-  2. 逆色调映射（SDR→HDR）
-  3. BT.2020 + PQ 输出
-- HDR 内容 **不走转换**，直通播放
+The default values are designed to produce a restrained result. Advanced controls are intended for testing and device-specific tuning:
 
----
+- **Peak brightness:** target output brightness in nits (default: 1000)
+- **Strength:** amount of SDR dynamic-range expansion (default: 1.0)
+- **Saturation:** color expansion multiplier (default: 1.0)
+- **Highlight enhancement:** emphasis applied to bright detail (default: 1.0)
 
-## 性能与流畅度建议
-HDR 实时渲染会增加 GPU 负载，可能导致评论区/推荐页面掉帧：
-- 已做 **UI 更新节流**（进度/缓冲更新频率降低）
-- 如果仍掉帧，可考虑：
-  - 关闭 HDR
-  - 降低显示刷新率
-  - 关闭弹幕
+Aggressive values can clip detail, distort color, increase power consumption, or expose driver-specific rendering problems.
 
----
+## Build from source
 
-## 常见问题
-### 1. 为什么提示 HDR 不可用？
-通常是 **EGL HDR colorspace 不支持** 或设备驱动限制导致。
-即使系统检测 HDR10 支持，也可能缺少 `EGL_EXT_gl_colorspace_bt2020_pq` 扩展。
-
-### 2. SDR 播放效果不明显？
-检查：
-- 是否开启 HDR 渲染开关
-- 参数强度/峰值亮度是否被调低
-- 设备是否处于 HDR 省电模式
-
-### 3. 切换视频黑屏？
-已做修复（重建播放控制器与 Surface 绑定），如仍复现请提交日志。
-
----
-
-## 构建说明
-**Flutter 版本**：3.38.6
+The pinned toolchain is Flutter 3.38.6 (also recorded in `.fvmrc`).
 
 ```bash
-# 进入项目
-cd PiliPlus
-
-# 拉依赖
-D:\flutter\3.38.6\flutter\bin\flutter.bat pub get
-
-# 生成 release APK
-D:\flutter\3.38.6\flutter\bin\flutter.bat build apk --release --no-shrink
+flutter pub get
+flutter build apk --release --no-shrink
 ```
 
-输出路径：
+The APK is written to `build/app/outputs/flutter-apk/app-release.apk`.
+
+For reproducible release work, use the repository's GitHub Actions workflow. Signing credentials are not required for pull-request validation and must never be committed to the repository.
+
+## Troubleshooting
+
+### HDR is reported as unavailable
+
+The display may support HDR10 while the graphics driver lacks a usable BT.2020/PQ EGL colorspace. Capture logs with:
+
+```bash
+adb logcat | grep -Ei "Hdr|EGL|MediaKit|VideoOutput"
 ```
-PiliPlus/build/app/outputs/flutter-apk/app-release.apk
-```
+
+### Switching video produces a black frame
+
+Retry with HDR disabled and attach a short reproduction, device details, and filtered logs to a [bug report](https://github.com/feice11/PiliPlus-SDR2HDR/issues/new/choose).
+
+### Playback or UI becomes less smooth
+
+Real-time conversion adds GPU load. Disable HDR, reduce the display refresh rate, or disable danmaku to isolate the bottleneck.
+
+## Roadmap
+
+- Expand the tested-device compatibility matrix
+- Improve EGL capability detection and fallback diagnostics
+- Add regression tests for tone-mapping parameters and platform messages
+- Reduce GPU cost and power consumption
+- Automate build verification and release checksums
+
+## Contributing and security
+
+Bug reports, device compatibility results, documentation improvements, and focused patches are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+For vulnerabilities or reports containing sensitive information, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+
+## Upstream and license
+
+This repository is an experimental derivative of [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus). PiliPlus provides the application foundation; this repository maintains the Android HDR rendering integration and related user controls. It is not affiliated with or endorsed by Bilibili.
+
+Distributed under the [GNU General Public License v3.0](LICENSE), consistent with the upstream project. See the repository history for authorship of individual changes.
 
 ---
 
-## 调试与日志
-- 建议使用 `adb logcat` 过滤关键字：
-  - `Hdr`, `EGL`, `MediaKit`, `VideoOutput`
+## 中文说明
 
----
+PiliPlus SDR2HDR 是 [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus) 的 Android HDR 实验版本。它通过 MediaKit、Android EGL 与 OpenGL Shader，将 SDR 视频从 BT.709 实时映射到 BT.2020/PQ 输出；原生 HDR 内容保持直通，设备不支持时可回退到普通 SDR 播放。
 
-## 已知限制
-- HDR 渲染为实验功能，不保证所有机型可用
-- 部分机型会出现 HDR 可用检测不一致
-- 多任务或高负载情况下 UI 可能掉帧
+### 使用条件
 
----
+- 仅 Android 端启用此 HDR 渲染管线，建议 Android 10 及以上。
+- 设备需要 HDR10/PQ 屏幕以及可用的 `EGL_EXT_gl_colorspace_bt2020_pq` 驱动扩展。
+- 系统标注“支持 HDR”不代表 EGL 驱动一定兼容，实际支持情况取决于机型和固件。
 
-## 路线图
-- 改善 HDR 检测兼容性
-- 优化 HDR 渲染性能（降低功耗）
-- 加入自动调参模式
+### 快速使用
 
----
+1. 从 [Releases](https://github.com/feice11/PiliPlus-SDR2HDR/releases/latest) 下载 APK。
+2. 安装后进入 **设置 -> 视频设置 -> HDR 渲染（实验）**。
+3. 播放 SDR 视频并通过开关对比效果。
 
-## 致谢
-- 原项目：**PiliPlus**
-- HDR 渲染与媒体播放基础：media_kit / OpenGL / Android EGL
-
----
-
-## 许可证
-本仓库遵循 **GPL-3.0**（与上游一致）。
-
+遇到问题请使用 [Issue 模板](https://github.com/feice11/PiliPlus-SDR2HDR/issues/new/choose)，并附上机型、Android 版本、GPU、应用版本、复现步骤和相关日志。参与贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

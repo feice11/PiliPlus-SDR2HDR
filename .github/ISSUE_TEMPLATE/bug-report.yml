@@ -1,0 +1,81 @@
+name: Bug report / Bug 反馈
+description: Report a reproducible HDR, playback, compatibility, or app problem
+labels: ["bug"]
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve device compatibility. Remove cookies, account tokens, private URLs, and personal data from logs before submitting.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist / 检查清单
+      options:
+        - label: I searched existing issues and did not find the same problem. / 我已搜索现有 Issue。
+          required: true
+        - label: I tested the latest release. / 我正在使用最新版本。
+          required: true
+        - label: I checked whether disabling HDR changes the behavior. / 我已对比关闭 HDR 后的表现。
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version / 应用版本
+      placeholder: v2.0.0-hdr.0
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version / 设备与系统版本
+      placeholder: Device model, Android version, ROM/firmware
+    validations:
+      required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and HDR mode / GPU 与 HDR 模式
+      placeholder: Adreno/Mali model, display HDR mode, refresh rate
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      placeholder: |
+        1. Enable ...
+        2. Play ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / 预期行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / 实际行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Sanitized logs / 已脱敏日志
+      description: Include relevant Hdr, EGL, MediaKit, or VideoOutput lines. Do not include credentials or private data.
+      render: shell
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional evidence / 补充材料
+      description: Screenshots, screen recordings, sample type, and whether SDR fallback works.
