@@ -126,10 +126,8 @@ abstract final class Pref {
     }
     return SegmentType.values
         .map(
-          (item) => Pair(
-            first: item,
-            second: SkipType.values[list[item.index]],
-          ),
+          (item) =>
+              Pair(first: item, second: SkipType.values[list[item.index]]),
         )
         .toList();
   }
@@ -139,13 +137,11 @@ abstract final class Pref {
     if (list == null || list.length != SegmentType.values.length) {
       return SegmentType.values.map((i) => i.color).toList();
     }
-    return SegmentType.values.map(
-      (item) {
-        final String e = list[item.index];
-        final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
-        return color != null ? Color(color) : item.color;
-      },
-    ).toList();
+    return SegmentType.values.map((item) {
+      final String e = list[item.index];
+      final color = e.isNotEmpty ? int.tryParse('FF$e', radix: 16) : null;
+      return color != null ? Color(color) : item.color;
+    }).toList();
   }
 
   static bool get feedBackEnable =>
@@ -323,9 +319,8 @@ abstract final class Pref {
   static String get blockUserID {
     String? blockUserID = _setting.get(SettingBoxKey.blockUserID);
     if (blockUserID == null || blockUserID.isEmpty) {
-      blockUserID = Digest(
-        List.generate(16, (_) => Utils.random.nextInt(256)),
-      ).toString();
+      blockUserID = Digest(List.generate(16, (_) => Utils.random.nextInt(256)))
+          .toString();
       _setting.put(SettingBoxKey.blockUserID, blockUserID);
     }
     return blockUserID;
@@ -781,6 +776,40 @@ abstract final class Pref {
 
   static bool get enableSponsorBlock =>
       _setting.get(SettingBoxKey.enableSponsorBlock, defaultValue: false);
+
+  static bool get enableHdrRenderAndroid =>
+      Platform.isAndroid &&
+      _setting.get(SettingBoxKey.enableHdrRenderAndroid, defaultValue: false);
+
+  static bool get enableHdrToneMapCustom =>
+      _setting.get(SettingBoxKey.enableHdrToneMapCustom, defaultValue: false);
+
+  static double get hdrToneMapPeakNits => (_setting.get(
+    SettingBoxKey.hdrToneMapPeakNits,
+    defaultValue: 1000.0,
+  ) as num).toDouble();
+
+  static double get hdrToneMapStrength =>
+      (_setting.get(SettingBoxKey.hdrToneMapStrength, defaultValue: 1.0) as num)
+          .toDouble();
+
+  static double get hdrToneMapSaturation => (_setting.get(
+    SettingBoxKey.hdrToneMapSaturation,
+    defaultValue: 1.0,
+  ) as num).toDouble();
+
+  static double get hdrToneMapHighlightBoost => (_setting.get(
+    SettingBoxKey.hdrToneMapHighlightBoost,
+    defaultValue: 1.0,
+  ) as num).toDouble();
+
+  static double get hdrToneMapDefaultHighlightProtect => ((_setting.get(
+    SettingBoxKey.hdrToneMapDefaultHighlightProtect,
+    defaultValue: 0.65,
+  ) as num).toDouble()).clamp(0.0, 1.0);
+
+  static double get hdrToneMapDefaultDynamicRange =>
+      hdrToneMapDefaultHighlightProtect;
 
   static bool get enableHA =>
       _setting.get(SettingBoxKey.enableHA, defaultValue: true);

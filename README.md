@@ -1,3 +1,21 @@
+# PiliPlus-SDR2HDR
+
+> 基于 **PiliPlus 2.1.3 主线**同步维护的 Android HDR 实验构建。保留上游当前功能，同时加入 SDR→HDR 实时转换与原生 HDR 直通。
+
+## HDR 功能
+
+- **SDR→HDR 实时转换（Android）**：视频解码后通过 `SurfaceView + OpenGL ES + EGL` 输出，SDR 内容映射到 BT.2020 / PQ。
+- **原生 HDR 自动直通**：检测 PQ / HLG 等 HDR 视频参数后绕过 SDR 逆色调映射，避免重复处理。
+- **高光与动态范围控制**：支持目标峰值亮度、映射强度、饱和度、高光增益与动态范围扩展。
+- **低位深抖动**：转换路径加入细微 dither，降低渐变区域 banding。
+- **可回退**：设备无法建立 BT.2020 PQ EGL surface 时回退普通输出，不让播放器直接黑死。
+
+设置路径：**设置 → 音视频设置 → SDR → HDR 实时转换**。修改总开关后重新打开播放器生效。
+
+> **安装签名提示**：早期 `v2.0.0-hdr.0` 使用过另一把临时 Debug 签名，无法与当前构建直接覆盖安装。Android 会因签名不一致拒绝升级，需要先卸载旧版。后续版本应保持同一签名链。
+
+---
+
 <div align="center">
     <img width="200" height="200" src="assets/images/logo/logo.png">
 </div>

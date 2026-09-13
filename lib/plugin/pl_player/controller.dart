@@ -52,7 +52,8 @@ import 'package:archive/archive.dart' show getCrc32;
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/services.dart' show HapticFeedback, DeviceOrientation;
+import 'package:flutter/services.dart'
+    show HapticFeedback, DeviceOrientation, MethodChannel;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:get/get.dart';
@@ -748,15 +749,40 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration: hwdec != null,
         androidAttachSurfaceAfterVideoParameters: false,
+        androidEnableSdrToHdr: Pref.enableHdrRenderAndroid,
         hwdec: hwdec,
       ),
     );
+
+    await _applyHdrToneMapOptions(player);
 
     player.setMediaHeader(userAgent: BrowserUa.pc, referer: HttpString.baseUrl);
 
     _startListeners(player);
 
     return player;
+  }
+
+  Future<void> _applyHdrToneMapOptions(Player player) async {
+    if (!Platform.isAndroid || !Pref.enableHdrRenderAndroid) return;
+    try {
+      final bool custom = Pref.enableHdrToneMapCustom;
+      await const MethodChannel(
+        'com.alexmercerind/media_kit_video',
+      ).invokeMethod('VideoOutputManager.SetToneMapOptions', {
+        'handle': player.handle.toString(),
+        'peak': (custom ? Pref.hdrToneMapPeakNits : 1000.0).toString(),
+        'strength': (custom ? Pref.hdrToneMapStrength : 1.0).toString(),
+        'saturation': (custom ? Pref.hdrToneMapSaturation : 1.0).toString(),
+        'highlight': (custom ? Pref.hdrToneMapHighlightBoost : 1.0).toString(),
+        'preDarken': '0.0',
+        'highlightProtect': Pref.hdrToneMapDefaultDynamicRange.toString(),
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('media_kit_hdr: SetToneMapOptions failed: $e');
+      }
+    }
   }
 
   late final buffer = Pref.initBuffer(_playbackSpeed.value);
@@ -818,11 +844,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
     assert(!isLive || seekTo == null);
     await player.open(
-      Media(
-        video,
-        start: seekTo,
-        extras: extras.isEmpty ? null : extras,
-      ),
+      Media(video, start: seekTo, extras: extras.isEmpty ? null : extras),
       play: false,
     );
   }

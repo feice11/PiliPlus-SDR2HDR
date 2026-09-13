@@ -30,6 +30,30 @@ List<SettingsModel> get videoSettings => [
     setKey: SettingBoxKey.enableHA,
     defaultVal: true,
   ),
+  if (Platform.isAndroid)
+    const SwitchModel(
+      title: 'SDR → HDR 实时转换',
+      subtitle: '使用 BT.2020 PQ 输出扩展 SDR 高光；原生 HDR 视频自动直通。修改后重新打开播放器生效',
+      leading: Icon(Icons.hdr_on_outlined),
+      setKey: SettingBoxKey.enableHdrRenderAndroid,
+      defaultVal: false,
+    ),
+  if (Platform.isAndroid)
+    const SwitchModel(
+      title: '自定义 HDR 映射',
+      subtitle: '启用峰值亮度、映射强度、饱和度与高光增益参数',
+      leading: Icon(Icons.tune_rounded),
+      setKey: SettingBoxKey.enableHdrToneMapCustom,
+      defaultVal: false,
+    ),
+  if (Platform.isAndroid)
+    NormalModel(
+      title: 'HDR 映射参数',
+      leading: const Icon(Icons.auto_awesome_outlined),
+      getSubtitle: () =>
+          '峰值 ${Pref.hdrToneMapPeakNits.round()} nits · 动态范围 ${(Pref.hdrToneMapDefaultDynamicRange * 100).round()}%',
+      onTap: _showHdrToneMapDialog,
+    ),
   const SwitchModel(
     title: '免登录1080P',
     subtitle: '免登录查看1080P视频',
@@ -179,6 +203,164 @@ List<SettingsModel> get videoSettings => [
   ),
 ];
 
+Future<void> _showHdrToneMapDialog(
+  BuildContext context,
+  VoidCallback setState,
+) async {
+  double peak = Pref.hdrToneMapPeakNits.clamp(300.0, 4000.0);
+  double strength = Pref.hdrToneMapStrength.clamp(0.0, 1.0);
+  double saturation = Pref.hdrToneMapSaturation.clamp(0.0, 1.2);
+  double highlight = Pref.hdrToneMapHighlightBoost.clamp(0.5, 4.0);
+  double dynamicRange = Pref.hdrToneMapDefaultDynamicRange.clamp(0.0, 1.0);
+
+  Widget sliderRow(
+    StateSetter dialogSetState,
+    String title,
+    double value,
+    double min,
+    double max,
+    int divisions,
+    String label,
+    ValueChanged<double> onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              Expanded(child: Text(title)),
+              Text(label),
+            ],
+          ),
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          onChanged: (value) {
+            onChanged(value);
+            dialogSetState(() {});
+          },
+        ),
+      ],
+    );
+  }
+
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, dialogSetState) => AlertDialog(
+        title: const Text('HDR 映射参数'),
+        contentPadding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                sliderRow(
+                  dialogSetState,
+                  '目标峰值亮度',
+                  peak,
+                  300,
+                  4000,
+                  74,
+                  '${peak.round()} nits',
+                  (value) => peak = value,
+                ),
+                sliderRow(
+                  dialogSetState,
+                  '映射强度',
+                  strength,
+                  0,
+                  1,
+                  20,
+                  strength.toStringAsFixed(2),
+                  (value) => strength = value,
+                ),
+                sliderRow(
+                  dialogSetState,
+                  '饱和度',
+                  saturation,
+                  0,
+                  1.2,
+                  24,
+                  saturation.toStringAsFixed(2),
+                  (value) => saturation = value,
+                ),
+                sliderRow(
+                  dialogSetState,
+                  '高光增益',
+                  highlight,
+                  0.5,
+                  4,
+                  35,
+                  highlight.toStringAsFixed(2),
+                  (value) => highlight = value,
+                ),
+                sliderRow(
+                  dialogSetState,
+                  '动态范围扩展',
+                  dynamicRange,
+                  0,
+                  1,
+                  20,
+                  '${(dynamicRange * 100).round()}%',
+                  (value) => dynamicRange = value,
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 4, 24, 12),
+                  child: Text(
+                    '动态范围扩展始终生效；其余四项需开启“自定义 HDR 映射”。pre-darken 已固定为 0，避免压暗中低亮度。',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              peak = 1000;
+              strength = 1;
+              saturation = 1;
+              highlight = 1;
+              dynamicRange = 0.65;
+              dialogSetState(() {});
+            },
+            child: const Text('恢复默认'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  if (saved == true) {
+    await Future.wait([
+      GStorage.setting.put(SettingBoxKey.hdrToneMapPeakNits, peak),
+      GStorage.setting.put(SettingBoxKey.hdrToneMapStrength, strength),
+      GStorage.setting.put(SettingBoxKey.hdrToneMapSaturation, saturation),
+      GStorage.setting.put(SettingBoxKey.hdrToneMapHighlightBoost, highlight),
+      GStorage.setting.put(
+        SettingBoxKey.hdrToneMapDefaultHighlightProtect,
+        dynamicRange,
+      ),
+    ]);
+    setState();
+  }
+}
+
 Future<void> _showCDNDialog(BuildContext context, VoidCallback setState) async {
   final res = await showDialog<CDNService>(
     context: context,
@@ -266,10 +448,7 @@ Future<void> _showVideoCellularQaDialog(
     ),
   );
   if (res != null) {
-    await GStorage.setting.put(
-      SettingBoxKey.defaultVideoQaCellular,
-      res,
-    );
+    await GStorage.setting.put(SettingBoxKey.defaultVideoQaCellular, res);
     setState();
   }
 }
@@ -305,10 +484,7 @@ Future<void> _showAudioCellularQaDialog(
     ),
   );
   if (res != null) {
-    await GStorage.setting.put(
-      SettingBoxKey.defaultAudioQaCellular,
-      res,
-    );
+    await GStorage.setting.put(SettingBoxKey.defaultAudioQaCellular, res);
     setState();
   }
 }
@@ -400,16 +576,11 @@ Future<void> _showAudioOutputDialog(
     builder: (context) => OrderedMultiSelectDialog<String>(
       title: '音频输出设备',
       initValues: Pref.audioOutput.split(','),
-      values: {
-        for (final e in AudioOutput.values) e.name: e.label,
-      },
+      values: {for (final e in AudioOutput.values) e.name: e.label},
     ),
   );
   if (res != null && res.isNotEmpty) {
-    await GStorage.setting.put(
-      SettingBoxKey.audioOutput,
-      res.join(','),
-    );
+    await GStorage.setting.put(SettingBoxKey.audioOutput, res.join(','));
     setState();
   }
 }
@@ -457,10 +628,7 @@ Future<void> _showHwDecDialog(
     ),
   );
   if (res != null && res.isNotEmpty) {
-    await GStorage.setting.put(
-      SettingBoxKey.hardwareDecoding,
-      res.join(','),
-    );
+    await GStorage.setting.put(SettingBoxKey.hardwareDecoding, res.join(','));
     setState();
   }
 }
